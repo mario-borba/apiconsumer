@@ -4,7 +4,7 @@ import java.util.List;
 
 public record NarutoCharactersResponseDTO(
         Integer total,
-        Integer page,
+        Integer pageSize,
         Integer currentPage,
         List<NarutoCharactersDTO> characters
 ) {
