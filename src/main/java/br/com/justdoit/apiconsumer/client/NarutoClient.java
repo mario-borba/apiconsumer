@@ -1,16 +1,13 @@
 package br.com.justdoit.apiconsumer.client;
 
 import br.com.justdoit.apiconsumer.dto.naruto.NarutoCharactersDTO;
+import br.com.justdoit.apiconsumer.dto.naruto.NarutoCharactersFilterDTO;
 import br.com.justdoit.apiconsumer.dto.naruto.NarutoCharactersResponseDTO;
 import exceptions.ApiExternaException;
 import exceptions.PersonagemNaoEncontradoException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 public class NarutoClient {
@@ -21,14 +18,26 @@ public class NarutoClient {
         this.dattebayoRestClient = dattebayoRestClient;
     }
 
-    public List<NarutoCharactersDTO> getCharacters() {
+    public NarutoCharactersResponseDTO getCharacters(
+            NarutoCharactersFilterDTO params) {
 
-        NarutoCharactersResponseDTO result = dattebayoRestClient
+        String name = params.name();
+
+        return dattebayoRestClient
                 .get()
-                .uri("/characters")
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/characters")
+                            .queryParam("page", params.pageOrDefault())
+                            .queryParam("limit", params.limitOrDefault());
+
+                    if (name != null && !name.isBlank()) {
+                        uriBuilder.queryParam("name", name);
+                    }
+                    return uriBuilder.build();
+                })
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, ((request, response) -> {
-                    if(response.getStatusCode().value() == 404) {
+                    if (response.getStatusCode().value() == 404) {
                         throw new PersonagemNaoEncontradoException("Personagens não encontrados.");
                     }
                 }))
@@ -37,11 +46,6 @@ public class NarutoClient {
                 })
                 .body(NarutoCharactersResponseDTO.class);
 
-        if (Objects.isNull(result) || result.characters().isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        return result.characters();
     }
 
     public NarutoCharactersDTO getCharactersById(Long id) {
